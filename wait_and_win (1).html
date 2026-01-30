@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wait & Win - McDonald's Style</title>
+    <style>
+        :root {
+            --mcd-red: #DA291C;
+            --mcd-yellow: #FFC72C;
+            --dark: #27251F;
+            --light-gray: #f4f4f4;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .mobile-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Header */
+        .order-status {
+            background-color: var(--dark);
+            color: white;
+            padding: 18px 8px;
+            border-bottom: 4px solid var(--mcd-yellow);
+            text-align: center;
+        }
+        .order-status .order-number {
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .order-status .live-counter {
+            font-size: 14px;
+            color: var(--mcd-yellow);
+            margin-top: 4px;
+            animation: pulse 2s infinite;
+        }
+        /* Main waiting screen */
+        #mainScreen {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #mainScreen h2 {
+            margin-top: 0;
+            color: var(--dark);
+        }
+        #mainScreen p {
+            color: #555;
+            font-size: 16px;
+            margin: 10px 0 20px;
+        }
+
+        /* Panel used on the main screen to match the board styling */
+        .main-panel {
+            background-color: #fff9e8;
+            background-image:
+              radial-gradient(circle, rgba(255,199,44,0.70) 2px, transparent 2.5px),
+              radial-gradient(circle, rgba(255,199,44,0.40) 2px, transparent 2.8px),
+              radial-gradient(circle, rgba(255,199,44,0.60) 1.5px, transparent 2.3px);
+            background-size: 25px 25px, 35px 35px, 45px 45px;
+            background-position: 0 0, 10px 10px, 20px 20px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .btn-play {
+            background-color: var(--mcd-red);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            font-size: 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(218, 41, 28, 0.4);
+            transition: transform 0.2s;
+        }
+        .btn-play:hover { transform: scale(1.05); }
+        .btn-play:active { transform: scale(0.95); }
+        /* Lobby overlay */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            color: #fff;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+        }
+        .overlay h2, .overlay h3 { margin: 10px 0; }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--mcd-yellow);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .user-carousel {
+            overflow: hidden;
+            width: 220px;
+            height: 40px;
+            margin-top: 20px;
+            position: relative;
+        }
+        .user-carousel .icons {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            animation: scrollIcons 6s linear infinite;
+        }
+        .user-carousel span {
+            font-size: 24px;
+            margin: 0 6px;
+        }
+        /* Game screen */
+        #gameScreen {
+            flex-grow: 1;
+            padding: 10px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+        }
+        /* Hide separate player info and timer: information will now be shown inside the yellow bubble */
+        #gameScreen .player-info, .timer {
+            display: none;
+        }
+        /* Board wrapper provides the confetti background */
+        .board-wrapper {
+            background-color: #fff9e8;
+            background-image:
+              radial-gradient(circle, rgba(255,199,44,0.70) 2px, transparent 2.5px),
+              radial-gradient(circle, rgba(255,199,44,0.40) 2px, transparent 2.8px),
+              radial-gradient(circle, rgba(255,199,44,0.60) 1.5px, transparent 2.3px);
+            background-size: 25px 25px, 35px 35px, 45px 45px;
+            background-position: 0 0, 10px 10px, 20px 20px;
+            padding: 28px 20px 20px;
+            border-radius: 16px;
+            display: inline-block;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .cell {
+            width: 90px;
+            height: 90px;
+            background: #fff;
+            border: 1.5px solid var(--mcd-yellow);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            color: var(--mcd-red);
+            position: relative;
+        }
+        .cell.o { color: var(--dark); }
+
+        /* Generic information bubble */
+        .info-bubble {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--mcd-yellow);
+            color: var(--dark);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .info-bubble::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 50%;
+            transform: translateX(50%);
+            border: 8px solid transparent;
+            border-top-color: var(--mcd-yellow);
+        }
+        /* Chat */
+        .chat {
+            width: 100%;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 120px;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 4px 6px;
+            overflow-y: auto;
+            text-align: right;
+            font-size: 18px;
+        }
+        .chat-messages .self { color: var(--mcd-red); }
+        .chat-messages .opponent { color: var(--dark); }
+        .emoji-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px;
+            border-top: 1px solid #ddd;
+        }
+        .emoji-bar span {
+            cursor: pointer;
+            font-size: 22px;
+        }
+        #statusMsg { display: none; }
+        #gameEndOverlay .btn-play { margin-top: 20px; }
+        #orderReadyOverlay .btn-play { margin-top: 20px; }
+
+        /* Animations */
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes scrollIcons { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="order-status">
+            <div class="order-number">הזמנה #492 בהכנה...</div>
+            <div class="live-counter">🔥 <span id="countWait">1,420</span> רעבים מחכים איתך למקדונלדס עכשיו!</div>
+        </div>
+        <div id="mainScreen">
+            <div class="main-panel">
+                <h2>משעמם לחכות לבד?</h2>
+                <p>בוא לשחק מול לקוח אחר ולקבל מתנה!</p>
+                <button class="btn-play" onclick="startMatchmaking()">שחק עכשיו</button>
+            </div>
+        </div>
+        <div class="overlay" id="lobbyOverlay">
+            <div class="loader"></div>
+            <h3 id="lobbyText">מחפש יריב...</h3>
+            <div class="user-carousel">
+                <div class="icons">
+                    <span>👤</span><span>👩</span><span>👨</span><span>👥</span>
+                    <span>👨‍🦱</span><span>👩‍🦱</span><span>👨‍🦰</span><span>👩‍🦰</span>
+                    <span>👤</span><span>👩</span><span>👨</span><span>👥</span>
+                </div>
+            </div>
+        </div>
+        <div id="gameScreen">
+            <div class="player-info" id="opponentName">משחק מול: ...</div>
+            <div id="timer" class="timer">10</div>
+            <div class="board-wrapper">
+                <div class="info-bubble" id="infoBubble" data-base="">היי אורן!</div>
+                <div class="board" id="board">
+                    <div class="cell" onclick="makeMove(0)"></div>
+                    <div class="cell" onclick="makeMove(1)"></div>
+                    <div class="cell" onclick="makeMove(2)"></div>
+                    <div class="cell" onclick="makeMove(3)"></div>
+                    <div class="cell" onclick="makeMove(4)"></div>
+                    <div class="cell" onclick="makeMove(5)"></div>
+                    <div class="cell" onclick="makeMove(6)"></div>
+                    <div class="cell" onclick="makeMove(7)"></div>
+                    <div class="cell" onclick="makeMove(8)"></div>
+                </div>
+            </div>
+            <div class="chat" id="chatPanel">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="emoji-bar">
+                    <span onclick="sendEmoji('😊')">😊</span>
+                    <span onclick="sendEmoji('😂')">😂</span>
+                    <span onclick="sendEmoji('🍔')">🍔</span>
+                    <span onclick="sendEmoji('🍟')">🍟</span>
+                    <span onclick="sendEmoji('😮')">😮</span>
+                </div>
+            </div>
+            <p id="statusMsg">התור שלך!</p>
+        </div>
+        <div class="overlay" id="gameEndOverlay">
+            <h2 id="endMessage">ניצחת!</h2>
+            <p id="progressInfo">ניצחון 1 מתוך 3!</p>
+            <button class="btn-play" onclick="continueGame()">המשך ליריב הבא</button>
+        </div>
+        <div class="overlay" id="orderReadyOverlay">
+            <h2>האוכל מוכן!</h2>
+            <p>ההזמנה שלך מוכנה. ניתן להמשיך לאיסוף, המשחק נשמר.</p>
+            <button class="btn-play" onclick="closeOrderReady()">סגור</button>
+        </div>
+    </div>
+    <script>
+        const fakeOpponents = ["דני מחולון", "שרה מתל אביב", "יוסי מחיפה", "עומר מרמת גן", "נועה מבאר שבע", "אבי מירושלים"];
+        let currentPlayer = 'X';
+        let gameActive = false;
+        let gameState = ["","","","","","","","",""];
+        let opponentName = "";
+        let winCount = 0;
+        let timerInterval;
+        let timeRemaining = 10;
+        let orderReadyTimeout;
+
+        function startMatchmaking() {
+            document.getElementById('mainScreen').style.display = 'none';
+            document.getElementById('lobbyOverlay').style.display = 'flex';
+            document.getElementById('lobbyText').innerText = "מחפש יריב...";
+            setTimeout(() => {
+                document.getElementById('lobbyText').innerText = "נמצא יריב! מתחבר...";
+            }, 2000);
+            setTimeout(() => {
+                opponentName = fakeOpponents[Math.floor(Math.random()*fakeOpponents.length)];
+                document.getElementById('lobbyOverlay').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'flex';
+                document.getElementById('opponentName').innerText = "משחק מול: " + opponentName;
+                startGame();
+                const readyTime = 20000 + Math.random()*20000;
+                orderReadyTimeout = setTimeout(showOrderReady, readyTime);
+            }, 3500);
+        }
+
+        function startGame() {
+            gameState = ["","","","","","","","",""];
+            document.querySelectorAll('.cell').forEach((c) => {
+                c.innerText = "";
+                c.classList.remove('x','o');
+            });
+            currentPlayer = 'X';
+            gameActive = true;
+            const bubble = document.getElementById('infoBubble');
+            bubble.dataset.base = "התור שלך!";
+            timeRemaining = 10;
+            updateInfoBubble();
+            startTimer();
+        }
+
+        function updateInfoBubble() {
+            const bubble = document.getElementById('infoBubble');
+            if (!bubble) return;
+            const base = bubble.dataset.base || "";
+            if (typeof timeRemaining !== 'undefined' && gameActive) {
+                bubble.innerText = base + ' \u2022 ' + timeRemaining;
+            } else {
+                bubble.innerText = base;
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateInfoBubble();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateInfoBubble();
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timeOut();
+                }
+            }, 1000);
+        }
+
+        function timeOut() {
+            if (gameActive && currentPlayer === 'X') {
+                endGame(false);
+            }
+        }
+
+        function makeMove(index) {
+            if (!gameActive || currentPlayer !== 'X' || gameState[index] !== "") return;
+            gameState[index] = "X";
+            renderCell(index, 'X');
+            if (checkWin('X')) {
+                endGame(true);
+                return;
+            }
+            if (!gameState.includes("")) {
+                endGame('draw');
+                return;
+            }
+            gameActive = false;
+            clearInterval(timerInterval);
+            const bubble = document.getElementById('infoBubble');
+            bubble.dataset.base = opponentName + " חושב...";
+            updateInfoBubble();
+            setTimeout(botMove, 800 + Math.random()*800);
+        }
+
+        function botMove() {
+            const available = gameState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+            if (available.length === 0) return;
+            const move = available[Math.floor(Math.random()*available.length)];
+            gameState[move] = 'O';
+            renderCell(move, 'O');
+            if (checkWin('O')) {
+                endGame(false);
+                return;
+            }
+            if (!gameState.includes("")) {
+                endGame('draw');
+                return;
+            }
+            currentPlayer = 'X';
+            gameActive = true;
+            const bubble = document.getElementById('infoBubble');
+            bubble.dataset.base = "התור שלך!";
+            startTimer();
+        }
+
+        function renderCell(index, value) {
+            const cell = document.querySelectorAll('.cell')[index];
+            if (value === 'X') {
+                cell.innerText = '🍟';
+            } else {
+                cell.innerText = '🍔';
+            }
+            cell.classList.add(value.toLowerCase());
+        }
+
+        function checkWin(player) {
+            const wins = [
+                [0,1,2], [3,4,5], [6,7,8],
+                [0,3,6], [1,4,7], [2,5,8],
+                [0,4,8], [2,4,6]
+            ];
+            return wins.some(combo => combo.every(idx => gameState[idx] === player));
+        }
+
+        function endGame(result) {
+            clearInterval(timerInterval);
+            gameActive = false;
+            let msg = "";
+            if (result === true) {
+                winCount++;
+                msg = "🎉 ניצחת!";
+            } else if (result === false) {
+                msg = "😔 הפסדת...";
+            } else {
+                msg = "🤝 תיקו!";
+            }
+            document.getElementById('endMessage').innerText = msg;
+            if (result === true) {
+                if (winCount >= 3) {
+                    document.getElementById('progressInfo').innerText = "השגת את המטבע/הטבה!";
+                } else {
+                    document.getElementById('progressInfo').innerText = `ניצחון ${winCount} מתוך 3! נצח עוד ${3 - winCount} יריבים לקבלת המטבע/הטבה`;
+                }
+            } else if (result === 'draw') {
+                document.getElementById('progressInfo').innerText = "תיקו. לא נחשב לניצחונות";
+            } else {
+                document.getElementById('progressInfo').innerText = `נשארו ${3 - winCount} ניצחונות להטבה`;
+            }
+            document.getElementById('gameEndOverlay').style.display = 'flex';
+            const bubble = document.getElementById('infoBubble');
+            bubble.dataset.base = msg.replace(/🎉|😔|🤝/g, '').trim();
+            updateInfoBubble();
+        }
+
+        function continueGame() {
+            document.getElementById('gameEndOverlay').style.display = 'none';
+            if (winCount >= 3) {
+                winCount = 0;
+                document.getElementById('mainScreen').style.display = 'flex';
+                document.getElementById('gameScreen').style.display = 'none';
+            } else {
+                startMatchmaking();
+            }
+        }
+
+        function showOrderReady() {
+            clearInterval(timerInterval);
+            gameActive = false;
+            document.getElementById('orderReadyOverlay').style.display = 'flex';
+        }
+
+        function closeOrderReady() {
+            document.getElementById('orderReadyOverlay').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'flex';
+            clearTimeout(orderReadyTimeout);
+        }
+
+        function sendEmoji(emoji) {
+            const container = document.getElementById('chatMessages');
+            const msgEl = document.createElement('div');
+            msgEl.className = 'self';
+            msgEl.innerText = emoji;
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+            const replyEmojis = ['😋','😂','🍔','🍟','🥳','😱'];
+            setTimeout(() => {
+                const r = document.createElement('div');
+                r.className = 'opponent';
+                r.innerText = replyEmojis[Math.floor(Math.random()*replyEmojis.length)];
+                container.appendChild(r);
+                container.scrollTop = container.scrollHeight;
+            }, 1000 + Math.random()*1500);
+        }
+    </script>
+</body>
+</html>
