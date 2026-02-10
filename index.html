@@ -267,8 +267,12 @@
         }
         .level-info {
             display: flex;
-            justify-content: space-between;
+            /* Align the level and score info on one line with a small gap rather than pushing
+               them to opposite ends.  This makes the level and points appear as a single
+               combined label, separated by a divider. */
+            justify-content: flex-start;
             align-items: center;
+            gap: 8px;
             width: 100%;
             margin-bottom: 4px;
         }
@@ -540,12 +544,14 @@
             pointsToNext = nextThreshold - playerScore;
         }
         progressFillEl.style.width = percent + '%';
-        // Update score info text.  Show total accumulated points in Hebrew and the points needed to reach the next level.
+        // Update score info text.  Show the current score and, if relevant, how many points remain
+        // to reach the next level.  We omit the 'סה"כ' prefix for brevity and separate the
+        // components with a vertical bar.
         if (pointsToNext !== null) {
-            scoreInfoEl.textContent = 'סה"כ: ' + playerScore + ' נק׳ | עוד ' + pointsToNext + ' לדרגה הבאה';
+            scoreInfoEl.textContent = playerScore + ' נק׳ | עוד ' + pointsToNext + ' לדרגה הבאה';
         } else {
-            // If on the highest level, indicate that the player is at max level and show total points
-            scoreInfoEl.textContent = 'סה"כ: ' + playerScore + ' נק׳ (מקסימום)';
+            // On the highest level: show score and indicate max level reached
+            scoreInfoEl.textContent = playerScore + ' נק׳ (מקסימום)';
         }
     }
 
@@ -770,17 +776,17 @@
         function makeComputerMove() {
             if (!gameActive) return;
             let move;
-            if (currentLevelIndex === 0) {
-                // Level 0: random move
+            // Simplify AI at early levels: the first three ranks (Mc Rookie, Mc Warm, Mc Hot)
+            // all play completely at random to make them easier to beat.
+            // Only from Mc Pro onwards do we introduce tactical play.
+            if (currentLevelIndex < 3) {
+                // Ranks 0–2: choose a completely random move
                 move = getRandomMove();
-            } else if (currentLevelIndex === 1) {
-                // Level 1: check if AI can win or block
+            } else if (currentLevelIndex === 3) {
+                // Mc Pro: check if AI can win or block, otherwise random
                 move = getBlockingOrWinningMove() ?? getRandomMove();
-            } else if (currentLevelIndex === 2) {
-                // Level 2: prefer center and corners
-                move = getStrategicMove();
             } else {
-                // Level 3+: minimax for 3×3, else fallback to strategic
+                // Mc Legend: use a more tactical approach (minimax/strategic)
                 if (boardSize === 3) {
                     move = getBestMove();
                 } else {
