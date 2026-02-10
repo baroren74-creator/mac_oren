@@ -456,7 +456,9 @@
                 isFastRound = true;
                 finalRoundTriggered = true;
                 timeRemaining = 6;
-                showToast('Final Round: Win to level up');
+                // Announce the decisive round in Hebrew.  This message aligns with the tone
+                // used in the timer bubble (short and clear) rather than mixing languages.
+                showToast('שלב מכריע: נצח כדי לעלות רמה');
             } else {
                 // Normal round timer
                 timeRemaining = 10;
@@ -781,30 +783,45 @@
             clearTimeout(orderReadyTimeout);
             // Determine points and update score
             let points = 0;
+            const endMessageEl = document.getElementById('endMessage');
+            const progressEl = document.getElementById('progressInfo');
             if (didWin === true) {
+                // Player won: award points, increment win count and show win message
                 points = 20;
                 winCount++;
                 showToast('ניצחת! +20 נקודות');
+                endMessageEl.innerText = 'ניצחת!';
             } else if (didWin === false) {
+                // Player lost: small consolation points and show lose message
                 points = 5;
                 showToast('הפסדת... +5 נקודות');
+                endMessageEl.innerText = 'הפסדת...';
             } else {
-                points = 10;
-                showToast('תיקו! +10 נקודות');
+                // Draw: no win counted, optional small points for participation, show draw message
+                points = 0;
+                showToast('תיקו!');
+                endMessageEl.innerText = 'תיקו!';
+                // Indicate that a draw does not count towards wins
+                progressEl.innerText = 'תיקו. לא נחשב לניצחונות';
+                document.getElementById('gameEndOverlay').style.display = 'flex';
+                return;
             }
             playerScore += points;
-            // Check if reached level threshold
+            // Check if reached level threshold (draws do not cause level ups)
             let nextIndex = currentLevelIndex + 1;
             if (nextIndex < levels.length && playerScore >= levels[nextIndex].threshold) {
                 currentLevelIndex = nextIndex;
-                showToast(`Level Up! You are now ${levels[currentLevelIndex].name}`);
+                // Level up notification in Hebrew. Keep the level name in English for clarity
+                // but wrap it with a Hebrew sentence.
+                showToast('עלית רמה! עכשיו אתה ב־' + levels[currentLevelIndex].name);
                 // For demonstration, automatically continue to next game after a short delay
                 setTimeout(() => {
                     continueGame();
                 }, 1500);
             } else {
                 // Show game end overlay if not continuing automatically
-                document.getElementById('progressInfo').innerText = `ניצחון ${winCount % 3} מתוך 3!`;
+                // Update progress message based on current win count
+                progressEl.innerText = `ניצחון ${winCount % 3} מתוך 3!`;
                 document.getElementById('gameEndOverlay').style.display = 'flex';
             }
         }
@@ -890,6 +907,11 @@
                 const img = document.createElement('img');
                 img.src = src;
                 img.alt = '';
+                // If the image fails to load (e.g. file missing), remove it from the DOM so
+                // broken icons do not appear in the carousel.
+                img.onerror = function() {
+                    this.remove();
+                };
                 track.appendChild(img);
             });
         }
