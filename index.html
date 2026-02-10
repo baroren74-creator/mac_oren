@@ -166,9 +166,12 @@
         #gameScreen .player-info, .timer {
             display: none;
         }
-        /* Board wrapper provides the confetti background */
+        /* Board wrapper provides the confetti background.
+           Use a semi–transparent background so the white card below
+           remains visible through the game area. This ensures the
+           underlying design and game name are not obscured. */
         .board-wrapper {
-            background-color: #fff9e8;
+            background-color: rgba(255, 249, 232, 0.95);
             background-image:
               radial-gradient(circle, rgba(255,199,44,0.70) 2px, transparent 2.5px),
               radial-gradient(circle, rgba(255,199,44,0.40) 2px, transparent 2.8px),
@@ -178,6 +181,7 @@
             padding: 28px 20px 20px;
             border-radius: 16px;
             display: inline-block;
+            margin-top: 16px;
             margin-bottom: 10px;
             position: relative;
         }
@@ -370,15 +374,18 @@
          * Place your player images (faces of people waiting) in the same folder as this HTML
          * and name them player_01.png, player_02.png, etc. Update this array accordingly.
          */
+        // Array of avatar images used in the lobby. The images are expected to live
+        // inside a folder named `players` alongside this HTML. Rename your files
+        // accordingly (e.g. 01.jpg, 02.jpg, etc.) and update the list if needed.
         const avatarImages = [
-            'player_01.png',
-            'player_02.png',
-            'player_03.png',
-            'player_04.png',
-            'player_05.png',
-            'player_06.png',
-            'player_07.png',
-            'player_08.png'
+            'players/01.jpg',
+            'players/02.jpg',
+            'players/03.jpg',
+            'players/04.jpg',
+            'players/05.jpg',
+            'players/06.jpg',
+            'players/07.jpg',
+            'players/08.jpg'
         ];
 
         function startMatchmaking() {
@@ -447,7 +454,12 @@
             // baseSize defines how wide the playable grid should be. Use a slightly smaller
             // base size than the original board so that the confetti background remains visible
             // around the game. Feel free to tweak this number for more/less padding.
-            const baseSize = 240;
+            // Base width (in pixels) of the playable grid. This value is chosen to
+            // closely match the original 3×3 board size so that the game fills the
+            // confetti panel without hiding the design. Increasing the base size
+            // ensures that 4×4 boards remain large enough while still leaving a
+            // visible margin around the edges.
+            const baseSize = 270;
             const cellSize = Math.floor(baseSize / size);
             // Update CSS variable for cell dimensions
             document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
