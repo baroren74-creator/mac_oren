@@ -127,22 +127,30 @@
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
-        .user-carousel {
+        /* Avatar carousel used in the lobby instead of emoji icons.  Each image is a circle with a yellow border and scrolls horizontally. */
+        .avatar-carousel {
             overflow: hidden;
-            width: 220px;
-            height: 40px;
+            width: 240px;
+            height: 48px;
             margin-top: 20px;
             position: relative;
         }
-        .user-carousel .icons {
+        .avatar-carousel .track {
             display: flex;
-            flex-direction: row;
             align-items: center;
-            animation: scrollIcons 6s linear infinite;
+            animation: scrollAvatars 8s linear infinite;
         }
-        .user-carousel span {
-            font-size: 24px;
-            margin: 0 6px;
+        .avatar-carousel img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--mcd-yellow);
+            object-fit: cover;
+            margin: 0 4px;
+        }
+        @keyframes scrollAvatars {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
         /* Game screen */
         #gameScreen {
@@ -295,12 +303,9 @@
         <div class="overlay" id="lobbyOverlay">
             <div class="loader"></div>
             <h3 id="lobbyText">מחפש יריב...</h3>
-            <div class="user-carousel">
-                <div class="icons">
-                    <span>👤</span><span>👩</span><span>👨</span><span>👥</span>
-                    <span>👨‍🦱</span><span>👩‍🦱</span><span>👨‍🦰</span><span>👩‍🦰</span>
-                    <span>👤</span><span>👩</span><span>👨</span><span>👥</span>
-                </div>
+            <!-- Avatar carousel shows real waiting players instead of generic icons -->
+            <div class="avatar-carousel" id="avatarCarousel">
+                <div class="track" id="avatarTrack"></div>
             </div>
         </div>
         <!-- Game screen -->
@@ -359,6 +364,22 @@
         let orderReadyTimeout;
         let isFastRound = false;
         let finalRoundTriggered = false;
+
+        /**
+         * List of avatar image filenames to display in the lobby carousel.
+         * Place your player images (faces of people waiting) in the same folder as this HTML
+         * and name them player_01.png, player_02.png, etc. Update this array accordingly.
+         */
+        const avatarImages = [
+            'player_01.png',
+            'player_02.png',
+            'player_03.png',
+            'player_04.png',
+            'player_05.png',
+            'player_06.png',
+            'player_07.png',
+            'player_08.png'
+        ];
 
         function startMatchmaking() {
             // Hide main screen, show lobby overlay with loading text
@@ -794,6 +815,27 @@
                 toast.remove();
             }, 3000);
         }
+
+        /**
+         * Populate the avatar carousel with images. Duplicates the array
+         * to create a continuous scrolling effect.
+         */
+        function populateAvatarCarousel() {
+            const track = document.getElementById('avatarTrack');
+            if (!track) return;
+            track.innerHTML = '';
+            // duplicate the images array to make the loop seamless
+            const imagesToRender = avatarImages.concat(avatarImages);
+            imagesToRender.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = 'avatar';
+                track.appendChild(img);
+            });
+        }
+
+        // Populate the avatar carousel on initial load
+        populateAvatarCarousel();
     </script>
 </body>
 </html>
