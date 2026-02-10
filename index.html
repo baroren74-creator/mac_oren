@@ -444,7 +444,10 @@
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
             // Determine cell size to keep the board roughly the same width as the original 3×3 (270px for cells + gaps)
-            const baseSize = 270; // 3×90
+            // baseSize defines how wide the playable grid should be. Use a slightly smaller
+            // base size than the original board so that the confetti background remains visible
+            // around the game. Feel free to tweak this number for more/less padding.
+            const baseSize = 240;
             const cellSize = Math.floor(baseSize / size);
             // Update CSS variable for cell dimensions
             document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
