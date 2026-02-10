@@ -253,6 +253,55 @@
             border: 8px solid transparent;
             border-top-color: var(--mcd-yellow);
         }
+
+        /* Level bar container: displays current level and a horizontal progress bar */
+        .level-container {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 6px 10px;
+            margin: 10px 16px 0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .level-container span {
+            margin-right: 8px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .level-progress {
+            flex-grow: 1;
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        .level-progress div {
+            height: 100%;
+            width: 0%;
+            background: var(--mcd-yellow);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* Container for info bubble and opponent avatar.  Places the bubble and avatar side by side */
+        .info-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .opponent-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--mcd-yellow);
+            object-fit: cover;
+            background: #fff;
+            margin-left: 8px;
+        }
         /* Chat */
         .chat {
             width: 100%;
@@ -339,9 +388,19 @@
         </div>
         <!-- Game screen -->
         <div id="gameScreen">
+            <!-- Player level and progress bar: shows the current level and a bar indicating progress to next level -->
+            <div class="level-container" id="levelContainer" style="display:none;">
+                <span id="playerLevelLabel">Level: New Player</span>
+                <div class="level-progress">
+                    <div id="levelProgressFill"></div>
+                </div>
+            </div>
             <!-- Info bubble sits above the board wrapper -->
             <div class="board-wrapper">
-                <div class="info-bubble" id="infoBubble" data-base=""></div>
+                <div class="info-container">
+                    <div class="info-bubble" id="infoBubble" data-base=""></div>
+                    <img id="opponentAvatar" class="opponent-avatar" src="" alt="יריב" />
+                </div>
                 <div class="board" id="board"></div>
             </div>
             <div class="chat" id="chatPanel">
@@ -398,6 +457,9 @@
         let isFastRound = false;
         let finalRoundTriggered = false;
 
+    // Current opponent avatar image source (chosen when matchmaking finishes)
+    let currentOpponentAvatar = '';
+
     // Timer for reverting the info bubble back to its base message.  When a
     // temporary status message is shown (e.g. level up or final round), this
     // timeout is used to clear the message after a few seconds.
@@ -424,6 +486,31 @@
             infoMessageTimeout = null;
             updateInfoBubble();
         }, duration);
+    }
+
+    /**
+     * Update the player level UI.  Displays the current level name and adjusts
+     * the width of the progress bar to indicate how close the player is to
+     * reaching the next level.  If the player is at the highest level,
+     * the bar is filled completely.
+     */
+    function updateLevelUI() {
+        const levelLabelEl = document.getElementById('playerLevelLabel');
+        const progressFillEl = document.getElementById('levelProgressFill');
+        if (!levelLabelEl || !progressFillEl) return;
+        const level = levels[currentLevelIndex];
+        levelLabelEl.textContent = 'Level: ' + level.name;
+        let nextThreshold = null;
+        if (currentLevelIndex + 1 < levels.length) {
+            nextThreshold = levels[currentLevelIndex + 1].threshold;
+        }
+        let percent = 100;
+        if (nextThreshold !== null) {
+            const spanScore = playerScore - level.threshold;
+            const spanTotal = nextThreshold - level.threshold;
+            percent = Math.max(0, Math.min(1, spanScore / spanTotal)) * 100;
+        }
+        progressFillEl.style.width = percent + '%';
     }
 
         /**
@@ -461,6 +548,11 @@
             setTimeout(() => {
                 // Always use the generic opponent name. Avoid random names.
                 opponentName = fakeOpponents[0];
+                // Choose a random avatar for this opponent from the available images
+                if (avatarImages.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * avatarImages.length);
+                    currentOpponentAvatar = avatarImages[randomIndex];
+                }
                 document.getElementById('lobbyOverlay').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'flex';
                 startGame();
@@ -503,6 +595,17 @@
             const bubble = document.getElementById('infoBubble');
             bubble.dataset.base = "התור שלך!";
             updateInfoBubble();
+            // Update opponent avatar for this game
+            const avatarEl = document.getElementById('opponentAvatar');
+            if (avatarEl && currentOpponentAvatar) {
+                avatarEl.src = currentOpponentAvatar;
+            }
+            // Show and update level progress bar
+            const lvlContainer = document.getElementById('levelContainer');
+            if (lvlContainer) {
+                lvlContainer.style.display = 'flex';
+                updateLevelUI();
+            }
             // Start countdown timer
             startTimer();
         }
@@ -843,6 +946,8 @@
                 return;
             }
             playerScore += points;
+            // Update the level progress bar with the new score
+            updateLevelUI();
             // Check if reached level threshold (draws do not cause level ups)
             let nextIndex = currentLevelIndex + 1;
             if (nextIndex < levels.length && playerScore >= levels[nextIndex].threshold) {
@@ -850,6 +955,8 @@
                 // Level up notification in Hebrew. Keep the level name in English for clarity
                 // but wrap it with a Hebrew sentence.
                 showInfoMessage('עלית רמה! עכשיו אתה ב־' + levels[currentLevelIndex].name);
+                // Update level UI to reflect new level and reset progress bar
+                updateLevelUI();
                 // For demonstration, automatically continue to next game after a short delay
                 setTimeout(() => {
                     continueGame();
@@ -874,6 +981,9 @@
             // Reset level-specific flags
             isFastRound = false;
             finalRoundTriggered = false;
+            // Hide level bar until next game
+            const lvlContainer = document.getElementById('levelContainer');
+            if (lvlContainer) lvlContainer.style.display = 'none';
         }
 
         /**
