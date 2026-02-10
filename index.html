@@ -398,20 +398,56 @@
         let isFastRound = false;
         let finalRoundTriggered = false;
 
+    // Timer for reverting the info bubble back to its base message.  When a
+    // temporary status message is shown (e.g. level up or final round), this
+    // timeout is used to clear the message after a few seconds.
+    let infoMessageTimeout;
+
+    /**
+     * Display a temporary message in the info bubble.  The message will
+     * replace the bubble's base content (player's turn and timer) for the
+     * specified duration, then automatically revert to the base content.
+     *
+     * @param {string} message The message to display in the bubble
+     * @param {number} duration How long the message should remain (ms)
+     */
+    function showInfoMessage(message, duration = 3000) {
+        const bubble = document.getElementById('infoBubble');
+        // Cancel any previous timeout so messages don't overlap
+        if (infoMessageTimeout) {
+            clearTimeout(infoMessageTimeout);
+        }
+        // Show the custom message
+        bubble.textContent = message;
+        // After the duration, revert to the base message and current timer
+        infoMessageTimeout = setTimeout(() => {
+            infoMessageTimeout = null;
+            updateInfoBubble();
+        }, duration);
+    }
+
         /**
          * List of avatar image filenames to display in the lobby carousel.
          * Place your player images (faces of people waiting) in a folder named `players`
          * alongside this HTML and name them sequentially (e.g. 01.jpg, 02.jpg, etc.).
          */
         const avatarImages = [
-            'players/01.jpg',
-            'players/02.jpg',
-            'players/03.jpg',
-            'players/04.jpg',
-            'players/05.jpg',
-            'players/06.jpg',
-            'players/07.jpg',
-            'players/08.jpg'
+            // Load avatars from the `players` directory.  File names use the
+            // pattern `player_##.png` to match the images provided by the user.
+            // If you have fewer or more images, adjust this list accordingly.
+            'players/player_01.png',
+            'players/player_02.png',
+            'players/player_03.png',
+            'players/player_04.png',
+            'players/player_05.png',
+            'players/player_06.png',
+            'players/player_07.png',
+            'players/player_08.png',
+            'players/player_09.png',
+            'players/player_10.png',
+            'players/player_11.png',
+            'players/player_12.png',
+            'players/player_13.png'
         ];
 
         function startMatchmaking() {
@@ -458,7 +494,7 @@
                 timeRemaining = 6;
                 // Announce the decisive round in Hebrew.  This message aligns with the tone
                 // used in the timer bubble (short and clear) rather than mixing languages.
-                showToast('שלב מכריע: נצח כדי לעלות רמה');
+                showInfoMessage('שלב מכריע: נצח כדי לעלות רמה');
             } else {
                 // Normal round timer
                 timeRemaining = 10;
@@ -789,17 +825,17 @@
                 // Player won: award points, increment win count and show win message
                 points = 20;
                 winCount++;
-                showToast('ניצחת! +20 נקודות');
+                showInfoMessage('ניצחת! +20 נקודות');
                 endMessageEl.innerText = 'ניצחת!';
             } else if (didWin === false) {
                 // Player lost: small consolation points and show lose message
                 points = 5;
-                showToast('הפסדת... +5 נקודות');
+                showInfoMessage('הפסדת... +5 נקודות');
                 endMessageEl.innerText = 'הפסדת...';
             } else {
                 // Draw: no win counted, optional small points for participation, show draw message
                 points = 0;
-                showToast('תיקו!');
+                showInfoMessage('תיקו!');
                 endMessageEl.innerText = 'תיקו!';
                 // Indicate that a draw does not count towards wins
                 progressEl.innerText = 'תיקו. לא נחשב לניצחונות';
@@ -813,7 +849,7 @@
                 currentLevelIndex = nextIndex;
                 // Level up notification in Hebrew. Keep the level name in English for clarity
                 // but wrap it with a Hebrew sentence.
-                showToast('עלית רמה! עכשיו אתה ב־' + levels[currentLevelIndex].name);
+                showInfoMessage('עלית רמה! עכשיו אתה ב־' + levels[currentLevelIndex].name);
                 // For demonstration, automatically continue to next game after a short delay
                 setTimeout(() => {
                     continueGame();
