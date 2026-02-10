@@ -337,11 +337,13 @@
             <p id="progressInfo">ניצחון 1 מתוך 3!</p>
             <button class="btn-play" onclick="continueGame()">המשך ליריב הבא</button>
         </div>
-        <!-- Order ready overlay -->
-        <div class="overlay" id="orderReadyOverlay">
+        <!-- Order ready overlay: appears when the kitchen calls your number.  It
+             dims the game instead of ending it. When the player acknowledges
+             the message, the overlay disappears and play resumes. -->
+        <div class="overlay" id="orderReadyOverlay" style="background: rgba(0,0,0,0.6);">
             <h2>האוכל מוכן!</h2>
-            <p>ההזמנה שלך מוכנה. ניתן להמשיך לאיסוף, המשחק נשמר.</p>
-            <button class="btn-play" onclick="closeOrderReady()">סגור</button>
+            <p>ההזמנה שלך מוכנה. ניתן לאסוף – המשחק ממשיך כשתסגור את ההודעה.</p>
+            <button class="btn-play" onclick="closeOrderReady()">הבנתי</button>
         </div>
     </div>
     <script>
@@ -783,15 +785,33 @@
          * Show the order ready overlay and pause the game.
          */
         function showOrderReady() {
+            // Pause the game and show a dimmed overlay to notify the player.
             clearInterval(timerInterval);
             gameActive = false;
             document.getElementById('orderReadyOverlay').style.display = 'flex';
         }
 
         function closeOrderReady() {
+            // Hide the overlay and resume the current game instead of exiting.
             document.getElementById('orderReadyOverlay').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'flex';
+            // Resume game
+            if (!gameActive) {
+                gameActive = true;
+                // Restart the timer with the remaining time. If the timer has run out during the pause,
+                // enforce a loss as timeout.
+                if (timeRemaining <= 0) {
+                    timeRemaining = 0;
+                    timeOut();
+                } else {
+                    startTimer();
+                }
+                // Reset the info bubble to player's turn if it was the player's turn when paused.
+                const bubble = document.getElementById('infoBubble');
+                if (bubble.dataset.base) {
+                    updateInfoBubble();
+                }
+            }
+            // Clear timeout so it doesn't trigger again.
             clearTimeout(orderReadyTimeout);
         }
 
