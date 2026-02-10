@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wait &amp; Win - Progression</title>
+    <title>Wait &amp; Win - Custom Design</title>
     <style>
         :root {
             --mcd-red: #DA291C;
             --mcd-yellow: #FFC72C;
             --dark: #27251F;
             --light-gray: #f4f4f4;
-            /* default cell size for a 3×3 board */
+            /* default cell size for a 3×3 board; this will be updated dynamically */
             --cell-size: 90px;
         }
         * { box-sizing: border-box; }
         body {
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* allow replacing the background by placing a file named wait&win_BG.jpg next to this html */
+            /* fallback colour when images are loading */
             background-color: var(--light-gray);
-            background-image: url('wait&win_BG.jpg');
+            /* mobile background by default */
+            background-image: url('bg_Mobile.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -28,18 +29,40 @@
             align-items: center;
             min-height: 100vh;
         }
+        /* Desktop-specific background */
+        @media (min-width: 768px) {
+            body {
+                background-image: url('bg_desktop.jpg');
+            }
+        }
         .mobile-container {
             width: 100%;
             max-width: 400px;
             height: 100vh;
-            background: #fff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background: transparent;
+            /* subtle shadow so the card stands out against busy backgrounds */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
         }
-        /* Header */
+        /* Header banner: displays a pre-made header graphic.  The graphic differs on mobile and desktop. */
+        .header-banner {
+            width: 100%;
+            height: 160px;
+            background-image: url('heder_Mobile.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        @media (min-width: 768px) {
+            .header-banner {
+                height: 140px;
+                background-image: url('heder_desktop.png');
+            }
+        }
+        /* Dark status bar for order status and waiting count */
         .order-status {
             background-color: var(--dark);
             color: white;
@@ -78,7 +101,7 @@
         }
         /* Panel used on the main screen to match the board styling */
         .main-panel {
-            background-color: #fff9e8;
+            background-color: rgba(255, 249, 232, 0.95);
             background-image:
               radial-gradient(circle, rgba(255,199,44,0.70) 2px, transparent 2.5px),
               radial-gradient(circle, rgba(255,199,44,0.40) 2px, transparent 2.8px),
@@ -166,10 +189,9 @@
         #gameScreen .player-info, .timer {
             display: none;
         }
-        /* Board wrapper provides the confetti background.
-           Use a semi–transparent background so the white card below
-           remains visible through the game area. This ensures the
-           underlying design and game name are not obscured. */
+        /* Board wrapper provides a semi-transparent confetti background to differentiate
+           the game from the page background. The confetti pattern is kept subtle so the
+           underlying header and background design remain visible. */
         .board-wrapper {
             background-color: rgba(255, 249, 232, 0.95);
             background-image:
@@ -184,6 +206,7 @@
             margin-top: 16px;
             margin-bottom: 10px;
             position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .board {
             display: grid;
@@ -283,14 +306,16 @@
             90% { opacity: 1; }
             100% { opacity: 0; }
         }
-        /* Animations */
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        @keyframes scrollIcons { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        /* Scrolling avatars track reused animation name from the lobby */
     </style>
 </head>
 <body>
     <div class="mobile-container">
+        <!-- Header banner from the design.  Displays the wait&win logo and tagline. -->
+        <div class="header-banner"></div>
+        <!-- Order status bar: shows order number and live wait counter -->
         <div class="order-status">
             <div class="order-number">הזמנה #492 בהכנה...</div>
             <div class="live-counter">🔥 <span id="countWait">1,420</span> רעבים מחכים איתך למקדונלדס עכשיו!</div>
@@ -337,8 +362,8 @@
             <p id="progressInfo">ניצחון 1 מתוך 3!</p>
             <button class="btn-play" onclick="continueGame()">המשך ליריב הבא</button>
         </div>
-        <!-- Order ready overlay: appears when the kitchen calls your number.  It
-             dims the game instead of ending it. When the player acknowledges
+        <!-- Order ready overlay: appears when the kitchen calls your number.
+             It dims the game instead of ending it. When the player acknowledges
              the message, the overlay disappears and play resumes. -->
         <div class="overlay" id="orderReadyOverlay" style="background: rgba(0,0,0,0.6);">
             <h2>האוכל מוכן!</h2>
@@ -348,7 +373,9 @@
     </div>
     <script>
         // Opponent names (unchanged)
-        const fakeOpponents = ["דני מחולון", "שרה מתל אביב", "יוסי מחיפה", "עומר מרמת גן", "נועה מבאר שבע", "אבי מירושלים"];
+        // List of generic opponent labels; we no longer show actual names or cities to keep
+        // the experience neutral and avoid showing fake personal information.
+        const fakeOpponents = ["היריב"];
         // Level definitions with score thresholds (demo lengths)
         const levels = [
             { name: 'New Player', threshold: 0 },
@@ -373,12 +400,9 @@
 
         /**
          * List of avatar image filenames to display in the lobby carousel.
-         * Place your player images (faces of people waiting) in the same folder as this HTML
-         * and name them player_01.png, player_02.png, etc. Update this array accordingly.
+         * Place your player images (faces of people waiting) in a folder named `players`
+         * alongside this HTML and name them sequentially (e.g. 01.jpg, 02.jpg, etc.).
          */
-        // Array of avatar images used in the lobby. The images are expected to live
-        // inside a folder named `players` alongside this HTML. Rename your files
-        // accordingly (e.g. 01.jpg, 02.jpg, etc.) and update the list if needed.
         const avatarImages = [
             'players/01.jpg',
             'players/02.jpg',
@@ -399,7 +423,8 @@
                 document.getElementById('lobbyText').innerText = "נמצא יריב! מתחבר...";
             }, 2000);
             setTimeout(() => {
-                opponentName = fakeOpponents[Math.floor(Math.random()*fakeOpponents.length)];
+                // Always use the generic opponent name. Avoid random names.
+                opponentName = fakeOpponents[0];
                 document.getElementById('lobbyOverlay').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'flex';
                 startGame();
@@ -453,14 +478,6 @@
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
             // Determine cell size to keep the board roughly the same width as the original 3×3 (270px for cells + gaps)
-            // baseSize defines how wide the playable grid should be. Use a slightly smaller
-            // base size than the original board so that the confetti background remains visible
-            // around the game. Feel free to tweak this number for more/less padding.
-            // Base width (in pixels) of the playable grid. This value is chosen to
-            // closely match the original 3×3 board size so that the game fills the
-            // confetti panel without hiding the design. Increasing the base size
-            // ensures that 4×4 boards remain large enough while still leaving a
-            // visible margin around the edges.
             const baseSize = 270;
             const cellSize = Math.floor(baseSize / size);
             // Update CSS variable for cell dimensions
@@ -532,49 +549,61 @@
                 endGame(true);
                 return;
             }
-            if (!gameState.includes('')) {
-                endGame('draw');
+            if (checkTie()) {
+                endGame(null);
                 return;
             }
-            // Switch to opponent turn
-            gameActive = false;
-            clearInterval(timerInterval);
+            // Switch to computer's turn
+            currentPlayer = 'O';
             const bubble = document.getElementById('infoBubble');
-            bubble.dataset.base = opponentName + ' חושב...';
+            bubble.dataset.base = "היריב חושב...";
+            timeRemaining = isFastRound ? 6 : 10;
             updateInfoBubble();
-            setTimeout(botMove, 800 + Math.random()*800);
+            // Let AI make a move after a short delay
+            setTimeout(() => {
+                makeComputerMove();
+            }, 500);
         }
 
         /**
-         * Bot (computer) makes its move. Difficulty increases with player level:
-         * - Level 0 (New Player): random moves
-         * - Level 1 (Getting There): blocks player's immediate winning moves
-         * - Level 2+ (On Fire and beyond): tries to win if possible, then block, else random
+         * Render X or O symbol in a cell
          */
-        function botMove() {
-            const available = gameState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-            if (available.length === 0) return;
+        function renderCell(index, symbol) {
+            const boardEl = document.getElementById('board');
+            const cell = boardEl.children[index];
+            const span = document.createElement('span');
+            span.className = symbol === 'X' ? 'cell x' : 'cell o';
+            span.innerText = (symbol === 'X') ? '🍟' : '🍔';
+            // Clear previous symbol if necessary
+            cell.innerHTML = '';
+            cell.appendChild(span);
+        }
+
+        /**
+         * Basic AI with different difficulty levels based on currentLevelIndex.  The AI is simple on
+         * early levels and progressively more tactical on later levels.  For a 3×3 board,
+         * use minimax on the hardest level (Pro Mode and above).  On 4×4 boards,
+         * heuristics are used as minimax is too slow for demo purposes.
+         */
+        function makeComputerMove() {
+            if (!gameActive) return;
             let move;
-            // For higher levels (On Fire and above) try to win or block
-            if (currentLevelIndex >= 2) {
-                // Try to win
-                move = findWinningMove('O');
-                if (move === null) {
-                    move = findWinningMove('X');
-                }
-                if (move === null) {
-                    move = preferredMove(available);
-                }
+            if (currentLevelIndex === 0) {
+                // Level 0: random move
+                move = getRandomMove();
             } else if (currentLevelIndex === 1) {
-                // Getting There: only blocks
-                move = findWinningMove('X');
-                if (move === null) {
-                    move = preferredMove(available);
+                // Level 1: check if AI can win or block
+                move = getBlockingOrWinningMove() ?? getRandomMove();
+            } else if (currentLevelIndex === 2) {
+                // Level 2: prefer center and corners
+                move = getStrategicMove();
+            } else {
+                // Level 3+: minimax for 3×3, else fallback to strategic
+                if (boardSize === 3) {
+                    move = getBestMove();
+                } else {
+                    move = getStrategicMove();
                 }
-            }
-            // If no strategy selected, pick random
-            if (move === undefined || move === null) {
-                move = available[Math.floor(Math.random()*available.length)];
             }
             gameState[move] = 'O';
             renderCell(move, 'O');
@@ -582,295 +611,290 @@
                 endGame(false);
                 return;
             }
-            if (!gameState.includes('')) {
-                endGame('draw');
+            if (checkTie()) {
+                endGame(null);
                 return;
             }
-            // Switch back to player
             currentPlayer = 'X';
-            gameActive = true;
             const bubble = document.getElementById('infoBubble');
             bubble.dataset.base = "התור שלך!";
-            // Reset timer depending on whether this was a fast round
-            if (isFastRound) {
-                timeRemaining = 6;
-            } else {
-                timeRemaining = 10;
-            }
+            timeRemaining = isFastRound ? 6 : 10;
+            updateInfoBubble();
             startTimer();
         }
 
         /**
-         * Find an immediate winning move for the given player. Returns the index or null if none exist.
-         * @param {string} player Symbol ('X' or 'O')
+         * Random move for AI
          */
-        function findWinningMove(player) {
-            const available = gameState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-            for (let idx of available) {
-                const copy = gameState.slice();
-                copy[idx] = player;
-                if (checkWinForState(copy, player)) {
-                    return idx;
+        function getRandomMove() {
+            const empty = gameState.map((val, idx) => val === '' ? idx : null).filter(idx => idx !== null);
+            return empty[Math.floor(Math.random() * empty.length)];
+        }
+
+        /**
+         * Return a winning or blocking move if exists, otherwise null
+         */
+        function getBlockingOrWinningMove() {
+            // Try to win
+            for (let i = 0; i < gameState.length; i++) {
+                if (gameState[i] === '') {
+                    gameState[i] = 'O';
+                    if (checkWin('O')) {
+                        gameState[i] = '';
+                        return i;
+                    }
+                    gameState[i] = '';
+                }
+            }
+            // Try to block
+            for (let i = 0; i < gameState.length; i++) {
+                if (gameState[i] === '') {
+                    gameState[i] = 'X';
+                    if (checkWin('X')) {
+                        gameState[i] = '';
+                        return i;
+                    }
+                    gameState[i] = '';
                 }
             }
             return null;
         }
 
         /**
-         * Simple heuristic move: prefer center and corners when available.
-         * @param {number[]} available indices of available cells
+         * Prefer center and corners on 3×3 boards. On 4×4 boards, pick a random cell from the edges and corners.
          */
-        function preferredMove(available) {
-            // For 3×3 board, prefer center and then corners
+        function getStrategicMove() {
+            const emptyCells = gameState.map((val, idx) => val === '' ? idx : null).filter(idx => idx !== null);
             if (boardSize === 3) {
                 const center = 4;
                 const corners = [0,2,6,8];
-                if (available.includes(center)) return center;
-                for (let c of corners) { if (available.includes(c)) return c; }
-            }
-            // For 4×4 board, prefer center area and corners
-            if (boardSize === 4) {
-                const centers = [5,6,9,10];
-                const corners = [0,3,12,15];
-                for (let c of centers) { if (available.includes(c)) return c; }
-                for (let c of corners) { if (available.includes(c)) return c; }
-            }
-            return null;
-        }
-
-        /**
-         * Render the symbol (X/O) into the cell with index i. Uses fries and burger emojis like the original design.
-         * @param {number} index
-         * @param {string} value 'X' or 'O'
-         */
-        function renderCell(index, value) {
-            const cell = document.querySelectorAll('.cell')[index];
-            if (value === 'X') {
-                cell.innerText = '🍟';
+                if (gameState[center] === '') return center;
+                for (const c of corners) {
+                    if (gameState[c] === '') return c;
+                }
             } else {
-                cell.innerText = '🍔';
+                // For 4×4, prefer corners and edge cells
+                const preferred = [];
+                const size = boardSize;
+                for (let i = 0; i < size; i++) {
+                    for (let j = 0; j < size; j++) {
+                        if (i === 0 || i === size-1 || j === 0 || j === size-1) {
+                            const idx = i * size + j;
+                            if (gameState[idx] === '') preferred.push(idx);
+                        }
+                    }
+                }
+                if (preferred.length) return preferred[Math.floor(Math.random() * preferred.length)];
             }
-            cell.classList.add(value.toLowerCase());
+            // Fallback random
+            return emptyCells[Math.floor(Math.random() * emptyCells.length)];
         }
 
         /**
-         * Check if the given player has a winning combination on the current gameState.
-         * Supports both 3×3 and 4×4 boards.
-         * @param {string} player 'X' or 'O'
+         * Minimax for 3×3 boards at highest difficulty (Pro Mode and above)
          */
-        function checkWin(player) {
-            return checkWinForState(gameState, player);
+        function getBestMove() {
+            let bestScore = -Infinity;
+            let move;
+            for (let i = 0; i < gameState.length; i++) {
+                if (gameState[i] === '') {
+                    gameState[i] = 'O';
+                    let score = minimax(gameState, 0, false);
+                    gameState[i] = '';
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        function minimax(state, depth, isMaximizing) {
+            if (checkWin('O')) return 10 - depth;
+            if (checkWin('X')) return depth - 10;
+            if (checkTie()) return 0;
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < state.length; i++) {
+                    if (state[i] === '') {
+                        state[i] = 'O';
+                        let score = minimax(state, depth + 1, false);
+                        state[i] = '';
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < state.length; i++) {
+                    if (state[i] === '') {
+                        state[i] = 'X';
+                        let score = minimax(state, depth + 1, true);
+                        state[i] = '';
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
         }
 
         /**
-         * Check if the given player has a winning combination on a provided state array.
-         * @param {Array<string>} state
-         * @param {string} player
+         * Check for win conditions for the given player symbol.
          */
-        function checkWinForState(state, player) {
-            // Check rows
+        function checkWin(symbol) {
+            // Check rows and columns
             for (let r = 0; r < boardSize; r++) {
                 let rowWin = true;
-                for (let c = 0; c < boardSize; c++) {
-                    if (state[r * boardSize + c] !== player) {
-                        rowWin = false;
-                        break;
-                    }
-                }
-                if (rowWin) return true;
-            }
-            // Check columns
-            for (let c = 0; c < boardSize; c++) {
                 let colWin = true;
-                for (let r = 0; r < boardSize; r++) {
-                    if (state[r * boardSize + c] !== player) {
-                        colWin = false;
-                        break;
-                    }
+                for (let c = 0; c < boardSize; c++) {
+                    if (gameState[r * boardSize + c] !== symbol) rowWin = false;
+                    if (gameState[c * boardSize + r] !== symbol) colWin = false;
                 }
-                if (colWin) return true;
+                if (rowWin || colWin) return true;
             }
-            // Check main diagonal
-            let diag = true;
+            // Check diagonals
+            let diag1Win = true;
+            let diag2Win = true;
             for (let i = 0; i < boardSize; i++) {
-                if (state[i * (boardSize + 1)] !== player) {
-                    diag = false;
-                    break;
-                }
+                if (gameState[i * boardSize + i] !== symbol) diag1Win = false;
+                if (gameState[i * boardSize + (boardSize - 1 - i)] !== symbol) diag2Win = false;
             }
-            if (diag) return true;
-            // Check anti diagonal
-            diag = true;
-            for (let i = 0; i < boardSize; i++) {
-                if (state[(i + 1) * (boardSize - 1)] !== player) {
-                    diag = false;
-                    break;
-                }
-            }
-            return diag;
+            return diag1Win || diag2Win;
         }
 
         /**
-         * Conclude the game. Handles updating score, win count, level progression and overlays.
-         * @param {boolean|string} result true for player win, false for bot win, 'draw' for tie
+         * Check for a tie (board full with no winner)
          */
-        function endGame(result) {
+        function checkTie() {
+            return gameState.every(cell => cell !== '');
+        }
+
+        /**
+         * End the current game. Update score, check for level ups, and display overlays.
+         * @param {boolean|null} didWin true if player won, false if lost, null if tie
+         */
+        function endGame(didWin) {
             clearInterval(timerInterval);
             gameActive = false;
-            let msg = '';
-            if (result === true) {
+            // Cancel the order ready timer if the game ends early
+            clearTimeout(orderReadyTimeout);
+            // Determine points and update score
+            let points = 0;
+            if (didWin === true) {
+                points = 20;
                 winCount++;
-                playerScore += 20;
-                msg = '🎉 ניצחת!';
-                // Check for level up if this was a fast round
-                let nextThreshold = (currentLevelIndex + 1 < levels.length) ? levels[currentLevelIndex + 1].threshold : null;
-                if (nextThreshold !== null && playerScore >= nextThreshold) {
-                    levelUp();
-                }
-            } else if (result === false) {
-                // Award small points for a loss to keep progress moving
-                playerScore += 5;
-                msg = '😔 הפסדת...';
+                showToast('ניצחת! +20 נקודות');
+            } else if (didWin === false) {
+                points = 5;
+                showToast('הפסדת... +5 נקודות');
             } else {
-                msg = '🤝 תיקו!';
+                points = 10;
+                showToast('תיקו! +10 נקודות');
             }
-            // Update progress overlay as in original design
-            document.getElementById('endMessage').innerText = msg;
-            if (result === true) {
-                if (winCount >= 3) {
-                    document.getElementById('progressInfo').innerText = "השגת את המטבע/הטבה!";
-                } else {
-                    document.getElementById('progressInfo').innerText = `ניצחון ${winCount} מתוך 3! נצח עוד ${3 - winCount} יריבים לקבלת המטבע/הטבה`;
-                }
-            } else if (result === 'draw') {
-                document.getElementById('progressInfo').innerText = 'תיקו. לא נחשב לניצחונות';
+            playerScore += points;
+            // Check if reached level threshold
+            let nextIndex = currentLevelIndex + 1;
+            if (nextIndex < levels.length && playerScore >= levels[nextIndex].threshold) {
+                currentLevelIndex = nextIndex;
+                showToast(`Level Up! You are now ${levels[currentLevelIndex].name}`);
+                // For demonstration, automatically continue to next game after a short delay
+                setTimeout(() => {
+                    continueGame();
+                }, 1500);
             } else {
-                document.getElementById('progressInfo').innerText = `נשארו ${3 - winCount} ניצחונות להטבה`;
+                // Show game end overlay if not continuing automatically
+                document.getElementById('progressInfo').innerText = `ניצחון ${winCount % 3} מתוך 3!`;
+                document.getElementById('gameEndOverlay').style.display = 'flex';
             }
-            // Show overlay
-            document.getElementById('gameEndOverlay').style.display = 'flex';
-            // Update the info bubble base to show the result (without emojis)
-            const bubble = document.getElementById('infoBubble');
-            bubble.dataset.base = msg.replace(/🎉|😔|🤝/g, '').trim();
-            updateInfoBubble();
         }
 
         /**
-         * Level up the player. Increase the level index and show a toast notification.
-         */
-        function levelUp() {
-            currentLevelIndex++;
-            if (currentLevelIndex >= levels.length) {
-                currentLevelIndex = levels.length - 1;
-            }
-            showToast(`Level Up! You are now ${levels[currentLevelIndex].name}`);
-        }
-
-        /**
-         * Continue to the next game or return to the main screen after a reward.
+         * Continue the game after finishing a round. Hides overlays and resets state.
          */
         function continueGame() {
             document.getElementById('gameEndOverlay').style.display = 'none';
-            if (winCount >= 3) {
-                // Reset win counter and go back to main screen
-                winCount = 0;
-                document.getElementById('mainScreen').style.display = 'flex';
-                document.getElementById('gameScreen').style.display = 'none';
-            } else {
-                startMatchmaking();
-            }
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'flex';
+            // Reset chat
+            document.getElementById('chatMessages').innerHTML = '';
+            // Reset level-specific flags
+            isFastRound = false;
+            finalRoundTriggered = false;
         }
 
         /**
-         * Show the order ready overlay and pause the game.
+         * When the kitchen calls your order number, show a semi-transparent overlay without ending the game.
          */
         function showOrderReady() {
-            // Pause the game and show a dimmed overlay to notify the player.
-            clearInterval(timerInterval);
-            gameActive = false;
             document.getElementById('orderReadyOverlay').style.display = 'flex';
+            clearInterval(timerInterval);
         }
-
         function closeOrderReady() {
-            // Hide the overlay and resume the current game instead of exiting.
             document.getElementById('orderReadyOverlay').style.display = 'none';
-            // Resume game
-            if (!gameActive) {
-                gameActive = true;
-                // Restart the timer with the remaining time. If the timer has run out during the pause,
-                // enforce a loss as timeout.
-                if (timeRemaining <= 0) {
-                    timeRemaining = 0;
-                    timeOut();
-                } else {
-                    startTimer();
-                }
-                // Reset the info bubble to player's turn if it was the player's turn when paused.
-                const bubble = document.getElementById('infoBubble');
-                if (bubble.dataset.base) {
-                    updateInfoBubble();
-                }
-            }
-            // Clear timeout so it doesn't trigger again.
-            clearTimeout(orderReadyTimeout);
+            // Resume timer only if game is active and player's turn
+            if (gameActive && currentPlayer === 'X') startTimer();
         }
 
         /**
-         * Append an emoji sent by the player to the chat and generate a random reply.
-         * @param {string} emoji
+         * Send an emoji in the chat; this updates the chat UI on both sides.
+         * @param {string} emoji The emoji character to send
          */
         function sendEmoji(emoji) {
-            const container = document.getElementById('chatMessages');
-            const msgEl = document.createElement('div');
-            msgEl.className = 'self';
-            msgEl.innerText = emoji;
-            container.appendChild(msgEl);
-            container.scrollTop = container.scrollHeight;
-            const replyEmojis = ['😋','😂','🍔','🍟','🥳','😱'];
+            const chat = document.getElementById('chatMessages');
+            const selfMsg = document.createElement('div');
+            selfMsg.className = 'self';
+            selfMsg.textContent = emoji;
+            chat.appendChild(selfMsg);
+            chat.scrollTop = chat.scrollHeight;
+            // Echo back from opponent after a short delay
             setTimeout(() => {
-                const r = document.createElement('div');
-                r.className = 'opponent';
-                r.innerText = replyEmojis[Math.floor(Math.random()*replyEmojis.length)];
-                container.appendChild(r);
-                container.scrollTop = container.scrollHeight;
-            }, 1000 + Math.random()*1500);
+                const oppMsg = document.createElement('div');
+                oppMsg.className = 'opponent';
+                // Mirror the emoji or choose a generic response
+                oppMsg.textContent = emoji;
+                chat.appendChild(oppMsg);
+                chat.scrollTop = chat.scrollHeight;
+            }, 500);
         }
 
         /**
-         * Display a transient toast message at the top of the screen.
-         * @param {string} message
+         * Display toast notifications.  This function creates a temporary element and
+         * ensures that only one toast is visible at a time.
+         * @param {string} message Message to display
          */
+        let currentToast = null;
         function showToast(message) {
+            if (currentToast) {
+                currentToast.remove();
+            }
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.innerText = message;
+            toast.textContent = message;
             document.body.appendChild(toast);
-            // Remove toast after animation finishes
-            setTimeout(() => {
+            currentToast = toast;
+            toast.addEventListener('animationend', () => {
                 toast.remove();
-            }, 3000);
+                currentToast = null;
+            });
         }
 
         /**
-         * Populate the avatar carousel with images. Duplicates the array
-         * to create a continuous scrolling effect.
+         * Initialize avatar carousel track by duplicating the avatar list to allow infinite scroll.
          */
-        function populateAvatarCarousel() {
+        function initAvatarCarousel() {
             const track = document.getElementById('avatarTrack');
-            if (!track) return;
             track.innerHTML = '';
-            // duplicate the images array to make the loop seamless
             const imagesToRender = avatarImages.concat(avatarImages);
             imagesToRender.forEach(src => {
                 const img = document.createElement('img');
                 img.src = src;
-                img.alt = 'avatar';
+                img.alt = '';
                 track.appendChild(img);
             });
         }
-
-        // Populate the avatar carousel on initial load
-        populateAvatarCarousel();
+        // Initialize avatar carousel on page load
+        window.addEventListener('DOMContentLoaded', initAvatarCarousel);
     </script>
 </body>
 </html>
