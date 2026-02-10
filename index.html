@@ -409,7 +409,7 @@
             <!-- Player level and progress bar: shows the current level, total points and remaining points to next level -->
             <div class="level-container" id="levelContainer" style="display:none;">
                 <div class="level-info">
-                    <span id="playerLevelLabel">רמה: New Player</span>
+                    <span id="playerLevelLabel">רמה: Mc Rookie</span>
                     <span id="playerScoreInfo">0 pts</span>
                 </div>
                 <div class="level-progress">
@@ -422,7 +422,7 @@
                     <div class="info-bubble" id="infoBubble" data-base=""></div>
                     <div class="opponent-info">
                         <img id="opponentAvatar" class="opponent-avatar" src="" alt="יריב" />
-                        <span id="opponentLevelLabel" class="opponent-level">New Player</span>
+                        <span id="opponentLevelLabel" class="opponent-level">Mc Rookie</span>
                     </div>
                 </div>
                 <div class="board" id="board"></div>
@@ -461,11 +461,12 @@
         const fakeOpponents = ["היריב"];
         // Level definitions with score thresholds (demo lengths)
         const levels = [
-            { name: 'New Player', threshold: 0 },
-            { name: 'Getting There', threshold: 40 },
-            { name: 'On Fire', threshold: 100 },
-            { name: 'Pro Mode', threshold: 180 },
-            { name: 'Legend Mode', threshold: 260 }
+            // Custom Mc-themed level names in English with a short prefix
+            { name: 'Mc Rookie', threshold: 0 },
+            { name: 'Mc Warm', threshold: 40 },
+            { name: 'Mc Hot', threshold: 100 },
+            { name: 'Mc Pro', threshold: 180 },
+            { name: 'Mc Legend', threshold: 260 }
         ];
         let playerScore = 0;
         let currentLevelIndex = 0;
