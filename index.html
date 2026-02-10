@@ -257,20 +257,27 @@
         /* Level bar container: displays current level and a horizontal progress bar */
         .level-container {
             display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.85);
+            flex-direction: column;
+            /* Slightly more opaque background to improve contrast over busy design */
+            background: rgba(255, 255, 255, 0.9);
             padding: 6px 10px;
             margin: 10px 16px 0;
             border-radius: 8px;
             font-size: 14px;
         }
-        .level-container span {
-            margin-right: 8px;
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        .level-info span {
             font-weight: bold;
             white-space: nowrap;
         }
         .level-progress {
-            flex-grow: 1;
+            width: 100%;
             height: 6px;
             background: #eee;
             border-radius: 3px;
@@ -293,6 +300,12 @@
             width: 100%;
             margin-bottom: 4px;
         }
+        .opponent-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 8px;
+        }
         .opponent-avatar {
             width: 36px;
             height: 36px;
@@ -300,7 +313,12 @@
             border: 2px solid var(--mcd-yellow);
             object-fit: cover;
             background: #fff;
-            margin-left: 8px;
+        }
+        .opponent-level {
+            font-size: 12px;
+            color: var(--dark);
+            margin-top: 2px;
+            font-weight: bold;
         }
         /* Chat */
         .chat {
@@ -388,9 +406,12 @@
         </div>
         <!-- Game screen -->
         <div id="gameScreen">
-            <!-- Player level and progress bar: shows the current level and a bar indicating progress to next level -->
+            <!-- Player level and progress bar: shows the current level, total points and remaining points to next level -->
             <div class="level-container" id="levelContainer" style="display:none;">
-                <span id="playerLevelLabel">Level: New Player</span>
+                <div class="level-info">
+                    <span id="playerLevelLabel">רמה: New Player</span>
+                    <span id="playerScoreInfo">0 pts</span>
+                </div>
                 <div class="level-progress">
                     <div id="levelProgressFill"></div>
                 </div>
@@ -399,7 +420,10 @@
             <div class="board-wrapper">
                 <div class="info-container">
                     <div class="info-bubble" id="infoBubble" data-base=""></div>
-                    <img id="opponentAvatar" class="opponent-avatar" src="" alt="יריב" />
+                    <div class="opponent-info">
+                        <img id="opponentAvatar" class="opponent-avatar" src="" alt="יריב" />
+                        <span id="opponentLevelLabel" class="opponent-level">New Player</span>
+                    </div>
                 </div>
                 <div class="board" id="board"></div>
             </div>
@@ -497,20 +521,31 @@
     function updateLevelUI() {
         const levelLabelEl = document.getElementById('playerLevelLabel');
         const progressFillEl = document.getElementById('levelProgressFill');
-        if (!levelLabelEl || !progressFillEl) return;
+        const scoreInfoEl = document.getElementById('playerScoreInfo');
+        if (!levelLabelEl || !progressFillEl || !scoreInfoEl) return;
         const level = levels[currentLevelIndex];
-        levelLabelEl.textContent = 'Level: ' + level.name;
+        // Display the level name in Hebrew prefix 'רמה:' for the player's level indicator
+        levelLabelEl.textContent = 'רמה: ' + level.name;
         let nextThreshold = null;
         if (currentLevelIndex + 1 < levels.length) {
             nextThreshold = levels[currentLevelIndex + 1].threshold;
         }
         let percent = 100;
+        let pointsToNext = null;
         if (nextThreshold !== null) {
             const spanScore = playerScore - level.threshold;
             const spanTotal = nextThreshold - level.threshold;
             percent = Math.max(0, Math.min(1, spanScore / spanTotal)) * 100;
+            pointsToNext = nextThreshold - playerScore;
         }
         progressFillEl.style.width = percent + '%';
+        // Update score info text.  Show total accumulated points in Hebrew and the points needed to reach the next level.
+        if (pointsToNext !== null) {
+            scoreInfoEl.textContent = 'סה"כ: ' + playerScore + ' נק׳ | עוד ' + pointsToNext + ' לדרגה הבאה';
+        } else {
+            // If on the highest level, indicate that the player is at max level and show total points
+            scoreInfoEl.textContent = 'סה"כ: ' + playerScore + ' נק׳ (מקסימום)';
+        }
     }
 
         /**
@@ -595,10 +630,15 @@
             const bubble = document.getElementById('infoBubble');
             bubble.dataset.base = "התור שלך!";
             updateInfoBubble();
-            // Update opponent avatar for this game
+            // Update opponent avatar and level for this game
             const avatarEl = document.getElementById('opponentAvatar');
+            const opponentLevelEl = document.getElementById('opponentLevelLabel');
             if (avatarEl && currentOpponentAvatar) {
                 avatarEl.src = currentOpponentAvatar;
+            }
+            if (opponentLevelEl) {
+                // Display the opponent's level with a Hebrew prefix so players know the AI difficulty
+                opponentLevelEl.textContent = 'רמה: ' + levels[currentLevelIndex].name;
             }
             // Show and update level progress bar
             const lvlContainer = document.getElementById('levelContainer');
